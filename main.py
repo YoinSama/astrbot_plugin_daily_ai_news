@@ -17,7 +17,9 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api.star import StarTools
 from astrbot.api import logger
 
-from image_card import (
+# AstrBot 以包方式加载插件（data.plugins.<插件目录>.main），
+# 因此子模块必须用相对导入，绝对路径会报 No module named 'image_card'。
+from .image_card import (
     resolve_theme as card_resolve_theme,
     parse_overview,
     render_card,
