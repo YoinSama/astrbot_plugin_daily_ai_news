@@ -17,6 +17,13 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api.star import StarTools
 from astrbot.api import logger
 
+from image_card import (
+    resolve_theme as card_resolve_theme,
+    parse_overview,
+    render_card,
+    screenshot_card,
+)
+
 # RSS 订阅源配置
 RSS_URL = "https://daily.juya.uk/rss.xml"
 
@@ -52,6 +59,7 @@ class DailyAINewsPlugin(Star):
         self._subscriptions_file = self._data_dir / "subscriptions.json"
         self._sent_file = self._data_dir / "sent_news.json"
         self._cache_file = self._data_dir / "summary_cache.json"
+        self._generated_dir = self._data_dir / "generated"
 
         # 通过指令订阅的 unified_msg_origin 集合
         self._cmd_subscriptions: Set[str] = set()
@@ -65,11 +73,13 @@ class DailyAINewsPlugin(Star):
     async def initialize(self):
         """插件初始化：加载持久化数据，启动定时推送任务。"""
         os.makedirs(self._data_dir, exist_ok=True)
+        os.makedirs(self._generated_dir, exist_ok=True)
         await self._load_subscriptions()
         await self._load_sent_news()
 
         self._task = asyncio.create_task(self._schedule_loop())
-        logger.info("每日AI资讯推送插件已初始化（RSS 订阅 + AI 总结模式）")
+        mode = self._get_push_mode()
+        logger.info(f"每日AI资讯推送插件已初始化（推送模式: {mode}）")
 
     # ==================== 指令处理 ====================
 
@@ -101,6 +111,23 @@ class DailyAINewsPlugin(Star):
             yield event.plain_result("😞 AI 总结失败，请稍后再试。")
             return
         yield event.plain_result(text)
+
+    @filter.command("ainews_card")
+    async def cmd_ainews_card(self, event: AstrMessageEvent):
+        """手动生成图片卡片（不受 push_mode 影响，始终出图）"""
+        yield event.plain_result("🔄 正在生成图片卡片，请稍候...")
+        article = await self._fetch_rss_latest()
+        if not article or not article.get("encoded_raw"):
+            yield event.plain_result("😞 暂时未能获取到 AI 早报，请稍后再试。")
+            return
+
+        png = await self._build_card(article)
+        if not png:
+            yield event.plain_result("😞 图片卡片生成失败，请查看日志。")
+            return
+
+        from astrbot.api.message_components import Image
+        yield event.chain_result([Image.fromFileSystem(str(png))])
 
     @filter.command("ainews_sub")
     async def cmd_subscribe(self, event: AstrMessageEvent):
@@ -149,9 +176,20 @@ class DailyAINewsPlugin(Star):
         else:
             provider_info = "默认供应商"
 
+        mode = self._get_push_mode()
+        mode_text = "图片卡片" if mode == "image" else "纯文本"
+        extra = ""
+        if mode == "image":
+            extra = (
+                f"🎨 卡片主题：{self.config.get('card_theme_mode', 'auto')} "
+                f"({self.config.get('card_light_start', '07:00')}-{self.config.get('card_dark_start', '18:00')})\n"
+            )
+
         status_text = (
             "📊 **每日AI资讯推送状态**\n"
             f"📡 数据源：RSS 订阅（橘鸦 AI 日报）\n"
+            f"📤 推送模式：{mode_text}\n"
+            f"{extra}"
             f"⏰ 首次检查时间：每天 {hour:02d}:{minute:02d}\n"
             f"🔄 轮询间隔：{poll_interval} 秒\n"
             f"🤖 AI 总结：{ai_enabled}\n"
@@ -395,13 +433,58 @@ class DailyAINewsPlugin(Star):
             logger.error(f"尝试获取并推送失败: {e}")
             return False
 
+    def _get_push_mode(self) -> str:
+        """推送模式：image（图片卡片）/ text（纯文本），二选一。"""
+        mode = str(self.config.get("push_mode", "text")).strip().lower()
+        return "image" if mode == "image" else "text"
+
+    async def _build_card(self, article: Dict) -> Optional[str]:
+        """由 RSS 首条 item 生成图片卡片，返回 PNG 路径；失败返回 None。"""
+        encoded_raw = article.get("encoded_raw", "")
+        issue = parse_overview(encoded_raw, article.get("title", ""), article.get("link", ""))
+        if not issue.items:
+            logger.warning("RSS content:encoded 中未解析到概览条目，无法生成卡片")
+            return None
+
+        mode = str(self.config.get("card_theme_mode", "auto")).strip().lower()
+        theme = card_resolve_theme(
+            datetime.now(),
+            mode,
+            self.config.get("card_light_start", "07:00"),
+            self.config.get("card_dark_start", "18:00"),
+        )
+
+        date_key = self._parse_article_date(article)
+        html_path = self._generated_dir / f"ainews-{date_key}-{theme}.html"
+        png_path = self._generated_dir / f"ainews-{date_key}-{theme}.png"
+        try:
+            render_card(issue, theme, html_path)
+            await screenshot_card(
+                html_path, png_path, self.config.get("card_browser_path", "")
+            )
+            logger.info(f"图片卡片已生成: {png_path}（{len(issue.items)} 条，{theme}）")
+            return str(png_path)
+        except Exception as e:
+            logger.error(f"图片卡片生成失败: {type(e).__name__}: {e!r}")
+            return None
+
     async def _do_push(self, article: Dict, article_date: str):
         """执行一次新闻推送到所有订阅目标。"""
         logger.info(f"开始执行每日AI资讯推送: {article['title']}")
 
-        text = await self._get_or_create_summary(article, article_date)
-        if not text:
-            logger.warning("未能生成 AI 总结，跳过本次推送")
+        mode = self._get_push_mode()
+        png_path = None
+        text = None
+        if mode == "image":
+            png_path = await self._build_card(article)
+            if not png_path:
+                logger.warning("图片卡片生成失败，降级为纯文本推送")
+                text = await self._get_or_create_summary(article, article_date)
+        else:
+            text = await self._get_or_create_summary(article, article_date)
+
+        if not png_path and not text:
+            logger.warning("未能生成任何可推送内容，跳过本次推送")
             return
 
         # 推送
@@ -413,7 +496,10 @@ class DailyAINewsPlugin(Star):
         success_count = 0
         for umo in targets:
             try:
-                chain = MessageChain().message(text)
+                if png_path:
+                    chain = MessageChain().file_image(png_path)
+                else:
+                    chain = MessageChain().message(text)
                 await self.context.send_message(umo, chain)
                 logger.info(f"已推送至: {umo}")
                 success_count += 1
@@ -526,6 +612,7 @@ class DailyAINewsPlugin(Star):
                 "link": link,
                 "content": content,
                 "pub_date": pub_date,
+                "encoded_raw": encoded_content,  # 供图片卡片解析概览 li
             }
 
         except ET.ParseError as e:

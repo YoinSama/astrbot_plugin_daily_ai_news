@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI 早报图片卡片</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:720px;font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--fg)}
+body.light{--bg:#ffffff;--fg:#16203a;--mut:#71809c;--ac:#4066d8;--num:#eef2ff;--foot:#111d3a;--ff:#dbe6ff;--fl:#3a4a70}
+body.dark{--bg:#111a2b;--fg:#f2f6ff;--mut:#9badc9;--ac:#5eead4;--num:#1d2d45;--foot:#060d19;--ff:#cfdaf0;--fl:#2b3a56}
+.top{height:82px;background:var(--ac);color:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:0 34px}
+.brand{font-size:14px;letter-spacing:3px;font-weight:700}
+.count{font-size:18px;font-weight:700}
+.pad{padding:30px 34px 0}
+.brand2{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:2px;font-weight:700;color:var(--ac)}
+.dot{width:9px;height:9px;border-radius:2px;transform:rotate(45deg);background:var(--ac)}
+.date{margin-left:auto;font-size:12px;padding:6px 12px;border-radius:16px;background:var(--num);color:var(--ac)}
+h1{font-size:42px;line-height:1.2;margin:18px 0 6px;font-weight:800;letter-spacing:-.5px}
+.sub{font-size:14px;color:var(--mut)}
+.rule{height:4px;width:50px;border-radius:3px;background:var(--ac);margin:18px 0 16px}
+.item{display:flex;gap:11px;align-items:flex-start;margin-bottom:9px}
+.num{flex:0 0 25px;height:25px;border-radius:7px;background:var(--num);color:var(--ac);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.t{font-size:14px;line-height:1.5;font-weight:500;padding-top:2px}
+.foot{background:var(--foot);color:var(--ff);margin-top:24px;padding:20px 34px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px}
+.foot b{color:var(--ff);font-weight:700}
+.foot .u{word-break:break-all;text-align:right}
+</style>
+</head>
+<body class="{{THEME}}">
+  <div class="top"><div class="brand">JUYA DAILY</div><div class="count">{{COUNT}} 条</div></div>
+  <div class="pad">
+    <div class="brand2"><span class="dot"></span>JUYA AI DAILY<span class="date">{{DATE}}</span></div>
+    <h1>今日 AI 早报</h1>
+    <div class="sub">{{COUNT}} 条要闻速览 · 由 AI 整理</div>
+    <div class="rule"></div>
+{{ROWS}}
+  </div>
+  <div class="foot"><span>来源 <b>橘鸦 AI 日报</b></span><span class="u">{{LINK}}</span></div>
+</body>
+</html>

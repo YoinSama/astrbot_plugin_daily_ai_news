@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.03] - 2026-11-19
+
+### 新增
+- **图片卡片推送模式**：新增 `push_mode` 配置（`text` / `image`，二选一，默认 `text`）。`image` 模式从 RSS 首条 `content:encoded` 的概览列表动态解析全部新闻条目（条数随源站变化，不写死），填入 HTML 模板后用 Playwright 截图成 PNG 发送，无需调用 LLM。
+- **明暗双主题**：`card_theme_mode`（`auto`/`light`/`dark`），`auto` 默认 07:00–18:00 明亮、18:00–次日 07:00 暗黑；截图高度随条目数自适应。
+- **手动出图指令**：`/ainews_card` 不受 `push_mode` 限制，随时生成图片卡片。
+
+### 变更
+- 新增依赖 `playwright`；截图优先使用系统 Edge，可配置 `card_browser_path`，无需即可自动探测。
+- 图片生成失败时自动降级为纯文本推送，不影响原有链路。
+
 ## [1.02] - 2026-06-14
 
 ### 变更

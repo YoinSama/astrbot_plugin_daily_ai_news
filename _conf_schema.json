@@ -17,6 +17,36 @@
 		"hint": "当 RSS 尚未更新当日内容时，每隔多少秒重新检查一次，默认 600 秒（10分钟）",
 		"default": 600
 	},
+	"push_mode": {
+		"type": "string",
+		"description": "推送模式（二选一）",
+		"hint": "text=纯文本 AI 总结（默认）；image=图片卡片（RSS 概览整期列表渲染成 PNG）。两者互斥，选其一。",
+		"default": "text"
+	},
+	"card_theme_mode": {
+		"type": "string",
+		"description": "图片卡片主题模式",
+		"hint": "auto=按时段自动切换；light=始终明亮；dark=始终暗黑。",
+		"default": "auto"
+	},
+	"card_light_start": {
+		"type": "string",
+		"description": "明亮主题开始时间（HH:MM）",
+		"hint": "auto 模式下从此时间起使用明亮主题，默认 07:00。",
+		"default": "07:00"
+	},
+	"card_dark_start": {
+		"type": "string",
+		"description": "暗黑主题开始时间（HH:MM）",
+		"hint": "auto 模式下从此时间起使用暗黑主题，默认 18:00（至次日 07:00）。",
+		"default": "18:00"
+	},
+	"card_browser_path": {
+		"type": "string",
+		"description": "截图浏览器路径（可选）",
+		"hint": "Playwright 使用的 Chromium/Edge 可执行文件完整路径。留空则自动探测系统 Edge 或 Playwright 自带 Chromium。",
+		"default": ""
+	},
 	"enable_ai_summary": {
 		"type": "bool",
 		"description": "是否开启 AI 总结",
