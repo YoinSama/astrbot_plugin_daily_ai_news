@@ -21,12 +21,14 @@
 		"type": "string",
 		"description": "推送模式（二选一）",
 		"hint": "text=纯文本 AI 总结（默认）；image=图片卡片（RSS 概览整期列表渲染成 PNG）。两者互斥，选其一。",
+		"options": ["text", "image"],
 		"default": "text"
 	},
 	"card_theme_mode": {
 		"type": "string",
 		"description": "图片卡片主题模式",
 		"hint": "auto=按时段自动切换；light=始终明亮；dark=始终暗黑。",
+		"options": ["auto", "light", "dark"],
 		"default": "auto"
 	},
 	"card_light_start": {
