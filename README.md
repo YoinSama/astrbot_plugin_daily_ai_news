@@ -1,5 +1,23 @@
 # astrbot_plugin_daily_ai_news
 
+> ## 🔀 相对上游仓库的修改
+>
+> 本仓库是对上游 [xxofficial/astrbot_plugin_daily_ai_news](https://github.com/xxofficial/astrbot_plugin_daily_ai_news) 的 fork，在此基础上的改动如下：
+>
+> | # | 改动 | 说明 |
+> | --- | --- | --- |
+> | 1 | **修复安装失败** | 上游 `metadata.yaml` 的 `version: 1.02` 被 YAML 解析为 float，导致新版 AstrBot 报「version 必须是非空字符串」；本仓库改为合法字符串（现为 `v1.0.3`），可正常安装。 |
+> | 2 | **新增图片卡片推送模式** | 新增 `push_mode` 配置（`text` 纯文本 / `image` 图片卡片，二选一）。`image` 模式从 RSS 首条 `content:encoded` 的概览列表动态解析全部新闻条目（条数随源站变化，非写死），填入 HTML 模板后用 **Playwright 截图**成 PNG 发送，**无需调用 LLM**。 |
+> | 3 | **明暗双主题 + 时段自动切换** | 新增 `card_theme_mode` / `card_light_start` / `card_dark_start`，`auto` 默认 07:00–18:00 明亮、18:00–次日 07:00 暗黑；截图高度随条目数自适应。 |
+> | 4 | **新增 `/ainews_card` 指令** | 手动触发生成图片卡片，不受 `push_mode` 限制。 |
+> | 5 | **失败降级** | 图片卡片生成失败时自动回退为原纯文本推送，不影响原有链路。 |
+> | 6 | **改用相对导入** | 子模块导入由绝对路径改为 `from .image_card import ...`，修复 AstrBot 以包方式加载插件时报 `No module named 'image_card'`。 |
+> | 7 | **配置项改为下拉栏** | `push_mode`、`card_theme_mode` 在管理面板中显示为下拉选择（`options`）。 |
+> | 8 | **更新源指向本 fork** | `metadata.yaml` 的 `repo` 由上游改为本仓库地址，面板「更新」从本 fork 拉取。 |
+> | 9 | **忽略本地产物** | `.gitignore` 增加 `previews/`、`generated/`、图片格式等，生成的预览图/截图不入库。 |
+>
+> 新增依赖：`playwright`。详见 [CHANGELOG.md](CHANGELOG.md) 的 `1.03` 条目。
+
 每日 AI 资讯自动推送插件 - 为 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 开发
 
 通过 RSS 订阅 [橘鸦 AI 日报](https://daily.juya.uk/rss.xml) 获取最新 AI 早报，经 **AI 总结** 后自动推送到 QQ 群 / 私聊。
